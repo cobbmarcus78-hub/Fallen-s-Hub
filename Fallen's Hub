@@ -1,0 +1,227 @@
+-- ===================== SERVICES =====================
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+-- ===================== GUI =====================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FallsGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game:GetService("CoreGui")
+
+-- ===================== NOTIFICATION SYSTEM =====================
+local function notify(text)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.fromOffset(260,40)
+	frame.Position = UDim2.new(0.5,-130,0.15,0)
+	frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+	frame.BackgroundTransparency = 1
+	frame.BorderSizePixel = 0
+	frame.Parent = screenGui
+	Instance.new("UICorner",frame).CornerRadius = UDim.new(0,10)
+
+	local label = Instance.new("TextLabel",frame)
+	label.Size = UDim2.fromScale(1,1)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = Color3.new(1,1,1)
+	label.Font = Enum.Font.GothamBold
+	label.TextScaled = true
+	label.TextTransparency = 1
+
+	TweenService:Create(frame,TweenInfo.new(0.3),{
+		BackgroundTransparency = 0.35
+	}):Play()
+
+	TweenService:Create(label,TweenInfo.new(0.3),{
+		TextTransparency = 0.15
+	}):Play()
+
+	task.delay(2,function()
+		TweenService:Create(frame,TweenInfo.new(0.3),{BackgroundTransparency = 1}):Play()
+		TweenService:Create(label,TweenInfo.new(0.3),{TextTransparency = 1}):Play()
+		task.delay(0.4,function()
+			frame:Destroy()
+		end)
+	end)
+end
+
+-- ===================== MAIN BUTTON =====================
+local mainButton = Instance.new("TextButton")
+mainButton.Size = UDim2.fromOffset(50,50)
+mainButton.Position = UDim2.fromOffset(200,200)
+mainButton.BackgroundColor3 = Color3.fromRGB(0,0,0)
+mainButton.Text = "Fall's"
+mainButton.TextColor3 = Color3.new(1,1,1)
+mainButton.Font = Enum.Font.GothamBold
+mainButton.TextSize = 15
+mainButton.BorderSizePixel = 0
+mainButton.Parent = screenGui
+Instance.new("UICorner",mainButton).CornerRadius = UDim.new(0,25)
+
+-- ===================== MENU =====================
+local menu = Instance.new("Frame")
+menu.Size = UDim2.new(0,200,0,380)
+menu.Position = UDim2.new(0.58,-100,0.5,-190)
+menu.BackgroundColor3 = Color3.fromRGB(30,30,30)
+menu.BorderSizePixel = 0
+menu.Visible = false
+menu.Parent = screenGui
+Instance.new("UICorner",menu).CornerRadius = UDim.new(0,12)
+
+local title = Instance.new("TextLabel",menu)
+title.Size = UDim2.new(1,0,0,40)
+title.BackgroundTransparency = 1
+title.Text = "Fall's Hub"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+
+-- ===================== BUTTON CREATOR =====================
+local function createButton(text,y)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.fromOffset(180,40)
+	b.Position = UDim2.new(0,10,0,y)
+	b.BackgroundColor3 = Color3.fromRGB(40,40,60)
+	b.BorderSizePixel = 0
+	b.Text = "• "..text
+	b.TextColor3 = Color3.new(1,1,1)
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 16
+	b.Parent = menu
+	Instance.new("UICorner",b).CornerRadius = UDim.new(0,12)
+	return b
+end
+
+-- ===================== ALLOW FRIENDS =====================
+local allowFriends = false
+createButton("Allow Friends",50).MouseButton1Click:Connect(function()
+	allowFriends = not allowFriends
+	ReplicatedStorage:WaitForChild("Packages")
+		:WaitForChild("Net")
+		:WaitForChild("RE/PlotService/ToggleFriends")
+		:FireServer()
+
+	notify("Allow Friends: "..(allowFriends and "ON" or "OFF"))
+end)
+
+-- ===================== KICK =====================
+createButton("Kick 🤞",100).MouseButton1Click:Connect(function()
+	player:Kick("bye bye ✌")
+end)
+
+-- ===================== PLAYER ESP =====================
+local espEnabled = false
+local espFolder = Instance.new("Folder",workspace)
+espFolder.Name = "PlayerESP"
+
+local function refreshESP()
+	espFolder:ClearAllChildren()
+	for _,plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			local box = Instance.new("BoxHandleAdornment")
+			box.Adornee = plr.Character.HumanoidRootPart
+			box.Size = Vector3.new(4,6,2)
+			box.Color3 = Color3.fromRGB(170,170,170)
+			box.Transparency = 0.4
+			box.AlwaysOnTop = true
+			box.Parent = espFolder
+		end
+	end
+end
+
+createButton("Player ESP",150).MouseButton1Click:Connect(function()
+	espEnabled = not espEnabled
+	if espEnabled then refreshESP() else espFolder:ClearAllChildren() end
+	notify("Player ESP: "..(espEnabled and "ON" or "OFF"))
+end)
+
+-- ===================== X-RAY =====================
+local xrayOn = false
+local xrayCache = {}
+
+createButton("X-Ray 👀",200).MouseButton1Click:Connect(function()
+	xrayOn = not xrayOn
+
+	if xrayOn then
+		for _,p in ipairs(workspace:GetDescendants()) do
+			if p:IsA("BasePart") and p.Anchored and p.Size.Magnitude > 15 then
+				xrayCache[p] = p.Transparency
+				p.Transparency = 0.65
+			end
+		end
+	else
+		for p,v in pairs(xrayCache) do
+			if p and p.Parent then p.Transparency = v end
+		end
+		xrayCache = {}
+	end
+
+	notify("X-Ray: "..(xrayOn and "ON" or "OFF"))
+end)
+
+-- ===================== SPEED BOOSTER (RENAMED) =====================
+local antiRagdoll = false
+local ragSpeed = 27.5
+local ragConn
+
+local function enableRagdoll(char)
+	local hum = char:WaitForChild("Humanoid")
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	if ragConn then ragConn:Disconnect() end
+	ragConn = RunService.RenderStepped:Connect(function()
+		if not antiRagdoll then return end
+		local d = hum.MoveDirection
+		if d.Magnitude > 0 then
+			hrp.AssemblyLinearVelocity = Vector3.new(
+				d.X * ragSpeed,
+				hrp.AssemblyLinearVelocity.Y,
+				d.Z * ragSpeed
+			)
+		end
+	end)
+end
+
+createButton("Speed Booster",250).MouseButton1Click:Connect(function()
+	antiRagdoll = not antiRagdoll
+	if antiRagdoll and player.Character then enableRagdoll(player.Character) end
+	notify("Speed Booster: "..(antiRagdoll and "ON" or "OFF"))
+end)
+
+player.CharacterAdded:Connect(function(c)
+	if antiRagdoll then task.wait(1) enableRagdoll(c) end
+end)
+
+-- ===================== DRAG =====================
+local function drag(gui)
+	local dragging,start,pos
+	gui.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			start = i.Position
+			pos = gui.Position
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(i)
+		if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+			local d = i.Position - start
+			gui.Position = UDim2.new(pos.X.Scale,pos.X.Offset+d.X,pos.Y.Scale,pos.Y.Offset+d.Y)
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+	end)
+end
+
+drag(mainButton)
+drag(menu)
+
+mainButton.MouseButton1Click:Connect(function()
+	menu.Visible = not menu.Visible
+end)
+
+print("✅ Fall's Hub loaded (Speed Booster renamed)")
