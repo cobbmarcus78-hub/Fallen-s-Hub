@@ -163,37 +163,86 @@ createButton("X-Ray 👀",200).MouseButton1Click:Connect(function()
 	notify("X-Ray: "..(xrayOn and "ON" or "OFF"))
 end)
 
--- ===================== SPEED BOOSTER (RENAMED) =====================
-local antiRagdoll = false
-local ragSpeed = 27.5
-local ragConn
+-- ===================== ORIGINAL SPEED BOOSTER (MENU) =====================
+local antiRagdollMenu = false
+local ragSpeedMenu = 27.5
+local ragConnMenu
 
-local function enableRagdoll(char)
+local function enableRagdollMenu(char)
 	local hum = char:WaitForChild("Humanoid")
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
-	if ragConn then ragConn:Disconnect() end
-	ragConn = RunService.RenderStepped:Connect(function()
-		if not antiRagdoll then return end
+	if ragConnMenu then ragConnMenu:Disconnect() end
+	ragConnMenu = RunService.RenderStepped:Connect(function()
+		if not antiRagdollMenu then return end
 		local d = hum.MoveDirection
 		if d.Magnitude > 0 then
 			hrp.AssemblyLinearVelocity = Vector3.new(
-				d.X * ragSpeed,
+				d.X * ragSpeedMenu,
 				hrp.AssemblyLinearVelocity.Y,
-				d.Z * ragSpeed
+				d.Z * ragSpeedMenu
 			)
 		end
 	end)
 end
 
 createButton("Speed Booster",250).MouseButton1Click:Connect(function()
-	antiRagdoll = not antiRagdoll
-	if antiRagdoll and player.Character then enableRagdoll(player.Character) end
-	notify("Speed Booster: "..(antiRagdoll and "ON" or "OFF"))
+	antiRagdollMenu = not antiRagdollMenu
+	if antiRagdollMenu and player.Character then enableRagdollMenu(player.Character) end
+	notify("Speed Booster: "..(antiRagdollMenu and "ON" or "OFF"))
 end)
 
 player.CharacterAdded:Connect(function(c)
-	if antiRagdoll then task.wait(1) enableRagdoll(c) end
+	if antiRagdollMenu then task.wait(1) enableRagdollMenu(c) end
+end)
+
+-- ===================== HOLD Z SPEED BOOSTER (KEYBIND ONLY) =====================
+local antiRagdollKey = false
+local ragSpeedKey = 52
+local ragConnKey
+
+local function enableRagdollKey(char)
+	local hum = char:WaitForChild("Humanoid")
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	if ragConnKey then ragConnKey:Disconnect() end
+	ragConnKey = RunService.RenderStepped:Connect(function()
+		if not antiRagdollKey then return end
+		local d = hum.MoveDirection
+		if d.Magnitude > 0 then
+			hrp.AssemblyLinearVelocity = Vector3.new(
+				d.X * ragSpeedKey,
+				hrp.AssemblyLinearVelocity.Y,
+				d.Z * ragSpeedKey
+			)
+		end
+	end)
+end
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.Z then
+		antiRagdollKey = true
+		if player.Character then enableRagdollKey(player.Character) end
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.Z then
+		antiRagdollKey = false
+	end
+end)
+
+player.CharacterAdded:Connect(function(c)
+	if antiRagdollKey then task.wait(1) enableRagdollKey(c) end
+end)
+
+-- ===================== AUTLOAD BUTTON =====================
+local autoload = false
+createButton("Autoload",300).MouseButton1Click:Connect(function()
+	autoload = not autoload
+	notify("Autoload: "..(autoload and "ON" or "OFF"))
 end)
 
 -- ===================== DRAG =====================
@@ -224,4 +273,4 @@ mainButton.MouseButton1Click:Connect(function()
 	menu.Visible = not menu.Visible
 end)
 
-print("✅ Fall's Hub loaded (Speed Booster renamed)")
+print("✅ Fall's Hub loaded (Original 27.5 + Hold Z 52 + Autoload button)")
