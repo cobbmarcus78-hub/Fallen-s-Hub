@@ -163,7 +163,7 @@ createButton("X-Ray 👀",200).MouseButton1Click:Connect(function()
 	notify("X-Ray: "..(xrayOn and "ON" or "OFF"))
 end)
 
--- ===================== ORIGINAL SPEED BOOSTER (MENU) =====================
+-- ===================== SPEED BOOSTER =====================
 local antiRagdollMenu = false
 local ragSpeedMenu = 27.5
 local ragConnMenu
@@ -196,53 +196,22 @@ player.CharacterAdded:Connect(function(c)
 	if antiRagdollMenu then task.wait(1) enableRagdollMenu(c) end
 end)
 
--- ===================== HOLD Z SPEED BOOSTER (KEYBIND ONLY) =====================
-local antiRagdollKey = false
-local ragSpeedKey = 52
-local ragConnKey
-
-local function enableRagdollKey(char)
-	local hum = char:WaitForChild("Humanoid")
-	local hrp = char:WaitForChild("HumanoidRootPart")
-
-	if ragConnKey then ragConnKey:Disconnect() end
-	ragConnKey = RunService.RenderStepped:Connect(function()
-		if not antiRagdollKey then return end
-		local d = hum.MoveDirection
-		if d.Magnitude > 0 then
-			hrp.AssemblyLinearVelocity = Vector3.new(
-				d.X * ragSpeedKey,
-				hrp.AssemblyLinearVelocity.Y,
-				d.Z * ragSpeedKey
-			)
-		end
-	end)
+-- ===================== RAGDOLL (AP) =====================
+local function ragdollSelf()
+	local chat = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
+	if chat then
+		chat.SayMessageRequest:FireServer(";ragdoll me","All")
+	end
+	notify("Ragdoll (AP) used")
 end
+
+createButton("Ragdoll (AP)",300).MouseButton1Click:Connect(ragdollSelf)
 
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if gpe then return end
-	if input.KeyCode == Enum.KeyCode.Z then
-		antiRagdollKey = true
-		if player.Character then enableRagdollKey(player.Character) end
+	if input.KeyCode == Enum.KeyCode.R then
+		ragdollSelf()
 	end
-end)
-
-UserInputService.InputEnded:Connect(function(input, gpe)
-	if gpe then return end
-	if input.KeyCode == Enum.KeyCode.Z then
-		antiRagdollKey = false
-	end
-end)
-
-player.CharacterAdded:Connect(function(c)
-	if antiRagdollKey then task.wait(1) enableRagdollKey(c) end
-end)
-
--- ===================== AUTLOAD BUTTON =====================
-local autoload = false
-createButton("Autoload",300).MouseButton1Click:Connect(function()
-	autoload = not autoload
-	notify("Autoload: "..(autoload and "ON" or "OFF"))
 end)
 
 -- ===================== DRAG =====================
@@ -273,4 +242,4 @@ mainButton.MouseButton1Click:Connect(function()
 	menu.Visible = not menu.Visible
 end)
 
-print("✅ Fall's Hub loaded (Original 27.5 + Hold Z 52 + Autoload button)")
+print("✅ Fall's Hub loaded (Ragdoll AP added, Autoload removed)")
