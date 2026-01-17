@@ -1,10 +1,24 @@
--- ===================== SERVICES =====================
+-- ===================== WHITELIST =====================
+local whitelistedUsers = {
+    "YourUsername1",  -- Replace with actual Roblox usernames
+    "YourUsername2",
+    "YourUsername3"
+}
+
 local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+if not table.find(whitelistedUsers, player.Name) then
+    player:Kick("Not whitelisted")
+    return
+end
+
+-- ===================== SERVICES =====================
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local player = Players.LocalPlayer
+local TextChatService = game:GetService("TextChatService")
 
 -- ===================== GUI =====================
 local screenGui = Instance.new("ScreenGui")
@@ -32,20 +46,13 @@ local function notify(text)
 	label.TextScaled = true
 	label.TextTransparency = 1
 
-	TweenService:Create(frame,TweenInfo.new(0.3),{
-		BackgroundTransparency = 0.35
-	}):Play()
-
-	TweenService:Create(label,TweenInfo.new(0.3),{
-		TextTransparency = 0.15
-	}):Play()
+	TweenService:Create(frame,TweenInfo.new(0.3),{BackgroundTransparency = 0.35}):Play()
+	TweenService:Create(label,TweenInfo.new(0.3),{TextTransparency = 0.15}):Play()
 
 	task.delay(2,function()
 		TweenService:Create(frame,TweenInfo.new(0.3),{BackgroundTransparency = 1}):Play()
 		TweenService:Create(label,TweenInfo.new(0.3),{TextTransparency = 1}):Play()
-		task.delay(0.4,function()
-			frame:Destroy()
-		end)
+		task.delay(0.4,function() frame:Destroy() end)
 	end)
 end
 
@@ -62,7 +69,7 @@ mainButton.BorderSizePixel = 0
 mainButton.Parent = screenGui
 Instance.new("UICorner",mainButton).CornerRadius = UDim.new(0,25)
 
--- ===================== MENU =====================
+-- ===================== MAIN MENU =====================
 local menu = Instance.new("Frame")
 menu.Size = UDim2.new(0,200,0,380)
 menu.Position = UDim2.new(0.58,-100,0.5,-190)
@@ -81,7 +88,7 @@ title.Font = Enum.Font.GothamBold
 title.TextScaled = true
 
 -- ===================== BUTTON CREATOR =====================
-local function createButton(text,y)
+local function createButton(text,y,parent)
 	local b = Instance.new("TextButton")
 	b.Size = UDim2.fromOffset(180,40)
 	b.Position = UDim2.new(0,10,0,y)
@@ -91,61 +98,99 @@ local function createButton(text,y)
 	b.TextColor3 = Color3.new(1,1,1)
 	b.Font = Enum.Font.GothamBold
 	b.TextSize = 16
-	b.Parent = menu
+	b.Parent = parent
 	Instance.new("UICorner",b).CornerRadius = UDim.new(0,12)
 	return b
 end
 
--- ===================== ALLOW FRIENDS =====================
+-- ===================== ALLOW FRIENDS (F) =====================
 local allowFriends = false
-createButton("Allow Friends",50).MouseButton1Click:Connect(function()
+local allowButton = createButton("Allow Friends (F)",50,menu)
+allowButton.MouseButton1Click:Connect(function()
 	allowFriends = not allowFriends
-	ReplicatedStorage:WaitForChild("Packages")
-		:WaitForChild("Net")
-		:WaitForChild("RE/PlotService/ToggleFriends")
-		:FireServer()
-
+	ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RE/PlotService/ToggleFriends"):FireServer()
 	notify("Allow Friends: "..(allowFriends and "ON" or "OFF"))
 end)
 
+UserInputService.InputBegan:Connect(function(input,gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.F then
+		allowFriends = not allowFriends
+		ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RE/PlotService/ToggleFriends"):FireServer()
+		notify("Allow Friends: "..(allowFriends and "ON" or "OFF"))
+	end
+end)
+
 -- ===================== KICK =====================
-createButton("Kick 🤞",100).MouseButton1Click:Connect(function()
+createButton("Kick 🤞",100,menu).MouseButton1Click:Connect(function()
 	player:Kick("bye bye ✌")
 end)
 
 -- ===================== PLAYER ESP =====================
-local espEnabled = false
+local espEnabled = true
 local espFolder = Instance.new("Folder",workspace)
 espFolder.Name = "PlayerESP"
 
+local function createESPForPlayer(plr)
+	if plr == player then return end
+	if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
+	local hrp = plr.Character.HumanoidRootPart
+
+	-- Box
+	local box = Instance.new("BoxHandleAdornment")
+	box.Adornee = hrp
+	box.Size = Vector3.new(4,6,2)
+	box.Color3 = Color3.fromRGB(170,170,170)
+	box.Transparency = 0.4
+	box.AlwaysOnTop = true
+	box.Parent = espFolder
+
+	-- Name Billboard
+	local billboard = Instance.new("BillboardGui")
+	billboard.Adornee = hrp
+	billboard.Size = UDim2.new(0,200,0,50)
+	billboard.StudsOffset = Vector3.new(0,3,0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = espFolder
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1,0,1,0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = plr.Name
+	nameLabel.TextColor3 = Color3.fromRGB(255,255,255)
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextScaled = true
+	nameLabel.Parent = billboard
+end
+
 local function refreshESP()
 	espFolder:ClearAllChildren()
-	for _,plr in ipairs(Players:GetPlayers()) do
-		if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-			local box = Instance.new("BoxHandleAdornment")
-			box.Adornee = plr.Character.HumanoidRootPart
-			box.Size = Vector3.new(4,6,2)
-			box.Color3 = Color3.fromRGB(170,170,170)
-			box.Transparency = 0.4
-			box.AlwaysOnTop = true
-			box.Parent = espFolder
+	if espEnabled then
+		for _,plr in ipairs(Players:GetPlayers()) do
+			createESPForPlayer(plr)
 		end
 	end
 end
 
-createButton("Player ESP",150).MouseButton1Click:Connect(function()
+Players.PlayerAdded:Connect(function(plr)
+	task.wait(1)
+	if espEnabled then createESPForPlayer(plr) end
+end)
+Players.PlayerRemoving:Connect(function(plr)
+	refreshESP()
+end)
+
+createButton("Player ESP",150,menu).MouseButton1Click:Connect(function()
 	espEnabled = not espEnabled
-	if espEnabled then refreshESP() else espFolder:ClearAllChildren() end
+	refreshESP()
 	notify("Player ESP: "..(espEnabled and "ON" or "OFF"))
 end)
 
 -- ===================== X-RAY =====================
 local xrayOn = false
 local xrayCache = {}
-
-createButton("X-Ray 👀",200).MouseButton1Click:Connect(function()
+createButton("X-Ray 👀",200,menu).MouseButton1Click:Connect(function()
 	xrayOn = not xrayOn
-
 	if xrayOn then
 		for _,p in ipairs(workspace:GetDescendants()) do
 			if p:IsA("BasePart") and p.Anchored and p.Size.Magnitude > 15 then
@@ -159,11 +204,10 @@ createButton("X-Ray 👀",200).MouseButton1Click:Connect(function()
 		end
 		xrayCache = {}
 	end
-
 	notify("X-Ray: "..(xrayOn and "ON" or "OFF"))
 end)
 
--- ===================== SPEED BOOSTER =====================
+-- ===================== SPEED BOOSTER (Q) =====================
 local antiRagdollMenu = false
 local ragSpeedMenu = 28.2
 local ragConnMenu
@@ -171,42 +215,93 @@ local ragConnMenu
 local function enableRagdollMenu(char)
 	local hum = char:WaitForChild("Humanoid")
 	local hrp = char:WaitForChild("HumanoidRootPart")
-
 	if ragConnMenu then ragConnMenu:Disconnect() end
 	ragConnMenu = RunService.RenderStepped:Connect(function()
 		if not antiRagdollMenu then return end
 		local d = hum.MoveDirection
 		if d.Magnitude > 0 then
-			hrp.AssemblyLinearVelocity = Vector3.new(
-				d.X * ragSpeedMenu,
-				hrp.AssemblyLinearVelocity.Y,
-				d.Z * ragSpeedMenu
-			)
+			hrp.AssemblyLinearVelocity = Vector3.new(d.X*ragSpeedMenu, hrp.AssemblyLinearVelocity.Y, d.Z*ragSpeedMenu)
 		end
 	end)
 end
 
-createButton("Speed Booster",250).MouseButton1Click:Connect(function()
+local speedButton = createButton("Speed Booster (Q)",250,menu)
+local function toggleSpeedBoost()
 	antiRagdollMenu = not antiRagdollMenu
 	if antiRagdollMenu and player.Character then enableRagdollMenu(player.Character) end
 	notify("Speed Booster: "..(antiRagdollMenu and "ON" or "OFF"))
-end)
+end
 
+speedButton.MouseButton1Click:Connect(toggleSpeedBoost)
+UserInputService.InputBegan:Connect(function(input,gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.Q then
+		toggleSpeedBoost()
+	end
+end)
 player.CharacterAdded:Connect(function(c)
 	if antiRagdollMenu then task.wait(1) enableRagdollMenu(c) end
 end)
 
--- ===================== RAGDOLL (AP) =====================
-local TextChatService = game:GetService("TextChatService")
+-- ===================== ZOOM BOOSTER MENU =====================
+local zoomMenu = Instance.new("Frame")
+zoomMenu.Size = UDim2.new(0,200,0,80)
+zoomMenu.Position = UDim2.new(0.58,-100,0.5,200)
+zoomMenu.BackgroundColor3 = Color3.fromRGB(30,30,30)
+zoomMenu.BorderSizePixel = 0
+zoomMenu.Visible = true
+zoomMenu.Parent = screenGui
+Instance.new("UICorner",zoomMenu).CornerRadius = UDim.new(0,12)
 
+local zoomTitle = Instance.new("TextLabel",zoomMenu)
+zoomTitle.Size = UDim2.new(1,0,0,30)
+zoomTitle.BackgroundTransparency = 1
+zoomTitle.Text = "Zoom Booster (Z)"
+zoomTitle.TextColor3 = Color3.new(1,1,1)
+zoomTitle.Font = Enum.Font.GothamBold
+zoomTitle.TextScaled = true
+
+local zoomButton = createButton("Enable Zoom",35,zoomMenu)
+local zoomActive = false
+local zoomSpeed = 54
+
+zoomButton.MouseButton1Click:Connect(function()
+	zoomActive = not zoomActive
+	zoomButton.Text = (zoomActive and "Disable Zoom" or "Enable Zoom")
+	notify("Zoom Booster: "..(zoomActive and "ON" or "OFF"))
+end)
+
+UserInputService.InputBegan:Connect(function(input,gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.Z and zoomActive then
+		local char = player.Character
+		if char then
+			local hrp = char:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				RunService:BindToRenderStep("ZoomSpeed", Enum.RenderPriority.Character.Value, function()
+					if zoomActive then
+						local dir = hrp.CFrame.LookVector
+						hrp.AssemblyLinearVelocity = Vector3.new(dir.X*zoomSpeed, hrp.AssemblyLinearVelocity.Y, dir.Z*zoomSpeed)
+					else
+						RunService:UnbindFromRenderStep("ZoomSpeed")
+					end
+				end)
+			end
+		end
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input,gpe)
+	if input.KeyCode == Enum.KeyCode.Z then
+		RunService:UnbindFromRenderStep("ZoomSpeed")
+	end
+end)
+
+-- ===================== RAGDOLL (AP) (R) =====================
 local COOLDOWN = 30
-local lastUse = 0
 local coolingDown = false
 
--- Button
-local ragButton = createButton("Ragdoll (AP)",300)
-
--- Cooldown bar
+local ragButton = createButton("Ragdoll (AP) (R)",300,menu)
 local barBG = Instance.new("Frame")
 barBG.Size = UDim2.new(1, -10, 0, 6)
 barBG.Position = UDim2.new(0, 5, 1, -8)
@@ -222,21 +317,11 @@ barFill.BorderSizePixel = 0
 barFill.Parent = barBG
 Instance.new("UICorner",barFill).CornerRadius = UDim.new(0,6)
 
--- Cooldown animation
 local function startCooldown()
 	coolingDown = true
 	barFill.Size = UDim2.new(0,0,1,0)
-
-	TweenService:Create(barFill, TweenInfo.new(
-		COOLDOWN,
-		Enum.EasingStyle.Linear
-	), {
-		Size = UDim2.new(1,0,1,0)
-	}):Play()
-
-	task.delay(COOLDOWN, function()
-		coolingDown = false
-	end)
+	TweenService:Create(barFill,TweenInfo.new(COOLDOWN,Enum.EasingStyle.Linear),{Size=UDim2.new(1,0,1,0)}):Play()
+	task.delay(COOLDOWN,function() coolingDown = false end)
 end
 
 local function ragdollSelf()
@@ -244,34 +329,20 @@ local function ragdollSelf()
 		notify("Ragdoll is cooling down")
 		return
 	end
-
-	lastUse = tick()
 	startCooldown()
-
 	local targetName = player.Name
-
 	if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
 		local channel = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
-		if channel then
-			channel:SendAsync(";ragdoll "..targetName)
-		end
+		if channel then channel:SendAsync(";ragdoll "..targetName) end
 	else
 		local chat = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
-		if chat then
-			chat.SayMessageRequest:FireServer(";ragdoll "..targetName,"All")
-		end
+		if chat then chat.SayMessageRequest:FireServer(";ragdoll "..targetName,"All") end
 	end
-
 	notify("Ragdoll (AP) used")
 end
 
--- Button click
-ragButton.MouseButton1Click:Connect(function()
-	ragdollSelf()
-end)
-
--- Keybind (R)
-UserInputService.InputBegan:Connect(function(input, gpe)
+ragButton.MouseButton1Click:Connect(ragdollSelf)
+UserInputService.InputBegan:Connect(function(input,gpe)
 	if gpe then return end
 	if input.KeyCode == Enum.KeyCode.R then
 		ragdollSelf()
@@ -301,9 +372,10 @@ end
 
 drag(mainButton)
 drag(menu)
+drag(zoomMenu)
 
 mainButton.MouseButton1Click:Connect(function()
 	menu.Visible = not menu.Visible
 end)
 
-print("✅ Fall's Hub loaded (Ragdoll AP added, Autoload removed)")
+print("✅ Fall's Hub loaded (Whitelist + Ragdoll (R) + Speed Booster (Q) + Zoom Booster (Z) + Allow Friends (F) + Auto ESP)")
