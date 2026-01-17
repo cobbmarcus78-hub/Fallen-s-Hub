@@ -1,8 +1,7 @@
 -- ===================== WHITELIST =====================
 local whitelistedUsers = {
-    "YourUsername1",  -- Replace with actual Roblox usernames
-    "YourUsername2",
-    "YourUsername3"
+    "Davlinreed13",
+    "quixotic812"
 }
 
 local Players = game:GetService("Players")
